@@ -1,0 +1,360 @@
+import math
+import random
+from datetime import datetime, timedelta
+# Import the Tkinter library for the GUI
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+# --- BACKEND LOGIC CLASSES (REUSED FROM tournament_manager.py) ---
+
+class Team:
+    """Represents a team or player in the tournament."""
+    def __init__(self, name, rank=0):
+        self.name = name
+        self.rank = rank
+
+    def __repr__(self):
+        return f"{self.name} (#{self.rank})"
+
+class Match:
+    """Represents a single match with two teams and a potential winner."""
+    def __init__(self, id, team1, team2, round_num, start_time):
+        self.id = id
+        self.team1 = team1
+        self.team2 = team2
+        self.round_num = round_num
+        self.start_time = start_time
+        self.winner = None
+
+    def set_winner(self, winner_team):
+        self.winner = winner_team
+        return winner_team
+
+    def get_status_display(self):
+        t1_name = self.team1.name if self.team1 else "TBD"
+        t2_name = self.team2.name if self.team2 else "TBD"
+        time_str = self.start_time.strftime("%I:%M %p")
+        
+        if self.winner:
+            status = f"Winner: {self.winner.name}"
+        else:
+            status = f"Scheduled @ {time_str}"
+            
+        return f"Match {self.id} (R{self.round_num}): {t1_name} vs {t2_name} | {status}"
+
+class TournamentGenerator:
+    """Manages the overall tournament bracket and progression."""
+    def __init__(self, name, start_time):
+        self.name = name
+        self.teams = []
+        self.rounds = {}
+        self.start_time = start_time
+        self.current_round = 1
+
+    def add_team(self, team_name, rank=0):
+        self.teams.append(Team(team_name, rank))
+
+    def generate_bracket(self):
+        """Generates the initial Round 1 bracket with Byes."""
+        if len(self.teams) < 2:
+            return False # Indicate failure
+        
+        sorted_teams = sorted(self.teams, key=lambda x: x.rank)
+        num_teams = len(sorted_teams)
+        bracket_size = 2 ** math.ceil(math.log2(num_teams))
+        num_byes = bracket_size - num_teams
+        
+        # Add Byes
+        for i in range(num_byes):
+            sorted_teams.append(Team("BYE", 999)) 
+
+        # Create Round 1
+        final_bracket_order = self._organize_seeds(sorted_teams)
+        self.rounds[1] = []
+        match_id = 1
+        current_time = self.start_time
+
+        for i in range(0, len(final_bracket_order), 2):
+            t1 = final_bracket_order[i]
+            t2 = final_bracket_order[i+1]
+            
+            m = Match(match_id, t1, t2, 1, current_time)
+            
+            # Auto-advance if opponent is BYE
+            if t2.name == "BYE":
+                m.set_winner(t1)
+            elif t1.name == "BYE":
+                m.set_winner(t2)
+                
+            self.rounds[1].append(m)
+            match_id += 1
+            current_time += timedelta(minutes=30)
+        
+        return True # Indicate success
+
+    def _organize_seeds(self, sorted_teams):
+        """Recursive seeding logic."""
+        if len(sorted_teams) <= 2:
+            return sorted_teams
+        top = sorted_teams[:len(sorted_teams)//2]
+        bottom = sorted_teams[len(sorted_teams)//2:][::-1]
+        merged = []
+        for t1, t2 in zip(top, bottom):
+            merged.extend([t1, t2])
+        return merged
+        
+    def advance_round(self, matches):
+        """Processes the winners of the current matches and sets up the next round."""
+        next_round_teams = []
+        for match in matches:
+            if match.winner:
+                next_round_teams.append(match.winner)
+
+        if len(next_round_teams) == 1:
+            return next_round_teams[0] # Return the champion
+            
+        self.current_round += 1
+        self.rounds[self.current_round] = []
+        
+        # Get start time for the next round, one hour after the last match of the previous round
+        last_match_time = self.rounds.get(self.current_round - 1)[-1].start_time
+        current_time = last_match_time + timedelta(hours=1)
+        
+        # Pair up winners for next round
+        for i in range(0, len(next_round_teams), 2):
+            if i + 1 < len(next_round_teams):
+                t1 = next_round_teams[i]
+                t2 = next_round_teams[i+1]
+                
+                # Check for Byes *again* if uneven teams somehow slipped through (though it shouldn't)
+                if t1.name == "BYE":
+                     t1 = t2
+                     t2 = Team("BYE", 999)
+                elif t2.name == "BYE":
+                    pass # t1 vs BYE is handled below
+
+                new_match = Match(len(self.rounds[self.current_round])+1, t1, t2, self.current_round, current_time)
+                
+                # Auto-advance if opponent is BYE (handles round 2 if needed)
+                if new_match.team2.name == "BYE":
+                    new_match.set_winner(new_match.team1)
+                elif new_match.team1.name == "BYE":
+                    new_match.set_winner(new_match.team2) # Should not happen, as Byes are low seeds.
+                
+                self.rounds[self.current_round].append(new_match)
+                current_time += timedelta(minutes=30)
+        
+        return None # No champion yet
+
+
+# --- GUI CLASS IMPLEMENTATION ---
+
+class TournamentGUI:
+    def __init__(self, master):
+        self.master = master
+        master.title("Single-Elimination Tournament Manager")
+        master.geometry("800x600")
+
+        self.tournament_generator = None
+        self.current_round = 0
+        
+        # Apply a simple style
+        style = ttk.Style()
+        style.configure('TFrame', background='#f0f0f0')
+        style.configure('TLabel', background='#f0f0f0', font=('Arial', 10))
+        style.configure('TButton', font=('Arial', 10, 'bold'))
+        
+        # Main frames
+        self.input_frame = ttk.Frame(master, padding="10")
+        self.input_frame.pack(side="top", fill="x")
+
+        self.sim_frame = ttk.Frame(master, padding="10")
+        self.sim_frame.pack(side="top", fill="both", expand=True)
+        
+        self.status_label = ttk.Label(self.sim_frame, text="Status: Register Teams", font=('Arial', 14, 'bold'), anchor='center')
+        self.status_label.pack(pady=10)
+
+        self._create_input_widgets()
+
+    def _create_input_widgets(self):
+        # --- Tournament Name Input ---
+        ttk.Label(self.input_frame, text="Tournament Name:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.name_entry = ttk.Entry(self.input_frame, width=30)
+        self.name_entry.insert(0, "Community Cup")
+        self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        # --- Team Registration Input ---
+        ttk.Label(self.input_frame, text="Team Name:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.team_entry = ttk.Entry(self.input_frame, width=30)
+        self.team_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        
+        ttk.Label(self.input_frame, text="Rank (1=Best):").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        self.rank_entry = ttk.Entry(self.input_frame, width=10)
+        self.rank_entry.insert(0, "1")
+        self.rank_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        
+        # Buttons
+        add_btn = ttk.Button(self.input_frame, text="Add Team", command=self._add_team_gui)
+        add_btn.grid(row=1, column=2, rowspan=2, padx=10, pady=5, sticky="w")
+        
+        self.start_btn = ttk.Button(self.input_frame, text="START TOURNAMENT", command=self._start_tournament_gui, state=tk.DISABLED)
+        self.start_btn.grid(row=0, column=3, rowspan=3, padx=20, pady=5, sticky="nsew")
+
+        # --- Registered Teams Display ---
+        ttk.Label(self.input_frame, text="Registered Teams:").grid(row=3, column=0, padx=5, pady=5, sticky="nw")
+        self.team_listbox = tk.Listbox(self.input_frame, height=5, width=40)
+        self.team_listbox.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+        
+        self.input_frame.grid_columnconfigure(1, weight=1)
+        self.input_frame.grid_rowconfigure(4, weight=1)
+
+    def _add_team_gui(self):
+        """Handles adding a team from the GUI input fields."""
+        name = self.team_entry.get().strip()
+        rank_str = self.rank_entry.get().strip()
+        
+        if not name:
+            messagebox.showerror("Error", "Please enter a team name.")
+            return
+
+        try:
+            rank = int(rank_str) if rank_str else 99
+        except ValueError:
+            messagebox.showerror("Error", "Rank must be a number.")
+            return
+
+        # Initialize generator if first team is added
+        if not self.tournament_generator:
+            tourney_name = self.name_entry.get() or "Community Cup"
+            t_start = datetime.now() + timedelta(minutes=10)
+            self.tournament_generator = TournamentGenerator(tourney_name, t_start)
+            self.master.title(f"{tourney_name} - Tournament Manager")
+
+        self.tournament_generator.add_team(name, rank)
+        self.team_listbox.insert(tk.END, f"{name} (Rank: {rank})")
+        
+        # Clear inputs and focus
+        self.team_entry.delete(0, tk.END)
+        self.rank_entry.delete(0, tk.END)
+        self.team_entry.focus()
+        
+        # Enable start button if at least 2 teams
+        if len(self.tournament_generator.teams) >= 2:
+            self.start_btn.config(state=tk.NORMAL)
+
+    def _start_tournament_gui(self):
+        """Initiates the bracket generation and displays the first round."""
+        if not self.tournament_generator or len(self.tournament_generator.teams) < 2:
+            messagebox.showerror("Error", "You need at least 2 teams to start the tournament.")
+            return
+
+        success = self.tournament_generator.generate_bracket()
+        if not success:
+            return
+
+        # Disable input widgets
+        for widget in self.input_frame.winfo_children():
+            widget.config(state=tk.DISABLED)
+
+        self.start_btn.config(state=tk.DISABLED)
+        self.name_entry.config(state=tk.DISABLED)
+
+        # Start simulation display
+        self.current_round = 1
+        self._display_round()
+
+    def _clear_simulation_frame(self):
+        """Clears all dynamic match widgets from the simulation frame."""
+        for widget in self.sim_frame.winfo_children():
+            # Keep the status label
+            if widget != self.status_label:
+                widget.destroy()
+
+    def _display_round(self):
+        """Displays all pending matches for the current round."""
+        self._clear_simulation_frame()
+        
+        matches = self.tournament_generator.rounds.get(self.current_round)
+        if not matches:
+            self.status_label.config(text="Error: No matches found.")
+            return
+            
+        self.status_label.config(text=f"Round {self.current_round} - {self.tournament_generator.name}")
+
+        match_frame = ttk.Frame(self.sim_frame)
+        match_frame.pack(fill="x", pady=10)
+
+        for match in matches:
+            if match.winner and match.team2.name == "BYE":
+                # Display auto-advance matches
+                match_label = ttk.Label(match_frame, text=f"Match {match.id}: {match.team1.name} (Auto-Advance)")
+                match_label.pack(pady=5, padx=10, fill='x')
+                continue # Skip buttons for Byes
+
+            if not match.winner:
+                # Display match details and winner buttons
+                match_container = ttk.Frame(match_frame, relief=tk.GROOVE, borderwidth=1, padding=5)
+                match_container.pack(pady=8, padx=20, fill='x')
+
+                ttk.Label(match_container, text=f"Match {match.id} | {match.team1.name} vs {match.team2.name}").pack(side='left', padx=10)
+                
+                # Buttons for Winner selection
+                random_btn = ttk.Button(match_container, text="Random Win (R)", 
+                                        command=lambda m=match: self._select_winner(m, 'r'))
+                random_btn.pack(side='right', padx=5)
+
+                t2_btn = ttk.Button(match_container, text=f"{match.team2.name} Win (2)", 
+                                    command=lambda m=match: self._select_winner(m, '2'))
+                t2_btn.pack(side='right', padx=5)
+
+                t1_btn = ttk.Button(match_container, text=f"{match.team1.name} Win (1)", 
+                                    command=lambda m=match: self._select_winner(m, '1'))
+                t1_btn.pack(side='right', padx=5)
+
+        # Check if all matches in the current round are completed (excluding Byes)
+        all_completed = all(m.winner for m in matches)
+        if all_completed:
+            advance_btn = ttk.Button(self.sim_frame, text="Advance to Next Round", 
+                                     command=self._advance_round_gui)
+            advance_btn.pack(pady=20)
+        else:
+            # Check for matches that were completed but not Byes (e.g. manually selected)
+            if any(m.winner and m.team2.name != "BYE" for m in matches):
+                ttk.Label(self.sim_frame, text="Select winners for all matches to advance.").pack(pady=5)
+            
+    def _select_winner(self, match, choice):
+        """Sets the winner for a match based on button click or random selection."""
+        if choice == '1':
+            winner = match.team1
+        elif choice == '2':
+            winner = match.team2
+        elif choice == 'r':
+            winner = random.choice([match.team1, match.team2])
+            
+        match.set_winner(winner)
+        
+        # Redraw the round to show the result and check if the 'Advance' button should appear
+        self._display_round()
+
+    def _advance_round_gui(self):
+        """Calls the backend logic to set up the next round or crown a champion."""
+        matches = self.tournament_generator.rounds.get(self.current_round)
+        if not all(m.winner for m in matches):
+            messagebox.showwarning("Incomplete Round", "All matches in the current round must have a winner before advancing.")
+            return
+
+        champion = self.tournament_generator.advance_round(matches)
+        
+        if champion:
+            self._clear_simulation_frame()
+            self.status_label.config(text=f"👑 TOURNAMENT CHAMPION: {champion.name} 👑", foreground="green")
+            messagebox.showinfo("Champion", f"The tournament champion is {champion.name}!")
+        else:
+            self.current_round = self.tournament_generator.current_round
+            self._display_round()
+
+# --- MAIN EXECUTION ---
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = TournamentGUI(root)
+    root.mainloop()
