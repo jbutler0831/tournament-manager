@@ -2,3 +2,7 @@ __pycache__/
 tournament_save*.pkl
 *.tmp
 *.bak
+build/
+dist/
+*.spec
+.venv-build/

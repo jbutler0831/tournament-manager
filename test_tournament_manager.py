@@ -112,6 +112,37 @@ class ReleaseRegressionTests(unittest.TestCase):
         self.assertEqual([open(m).read() for m in made], ["0", "1", "2"])
 
 
+class WindowsPathTests(unittest.TestCase):
+    def test_script_run_saves_next_to_script(self):
+        import os, sys, tournament_manager as tm
+        self.assertFalse(getattr(sys, "frozen", False))
+        here = os.path.dirname(os.path.abspath(tm.__file__))
+        self.assertEqual(tm.data_dir(), here)
+        self.assertEqual(tm.SAVE_PATH, os.path.join(here, "tournament_save.pkl"))
+        self.assertEqual(tm.LOG_PATH, os.path.join(here, "tournament_manager.log"))
+
+    def test_packaged_exe_uses_documents_folder(self):
+        import os, sys, tempfile, tournament_manager as tm
+        from unittest import mock
+        docs = tempfile.mkdtemp()
+        with mock.patch.object(sys, "frozen", True, create=True), mock.patch.object(tm, "documents_dir", return_value=docs):
+            self.assertEqual(tm.data_dir(), os.path.join(docs, "TournamentManager"))
+
+    def test_documents_folder_off_windows(self):
+        import os, sys, tournament_manager as tm
+        if sys.platform != "win32":
+            self.assertEqual(tm.documents_dir(), os.path.join(os.path.expanduser("~"), "Documents"))
+        else:
+            self.assertTrue(os.path.isdir(tm.documents_dir()))  # real Windows: the shell's Documents folder exists
+
+    def test_first_save_creates_missing_folder(self):
+        import os, tempfile
+        g = make(["A", "B"])
+        path = os.path.join(tempfile.mkdtemp(), "Documents", "TournamentManager", "tournament_save.pkl")
+        save_tournament(g, path)
+        self.assertEqual(load_tournament(path).name, "Test")
+
+
 class SaveAndWebTests(unittest.TestCase):
     def test_save_roundtrip_keeps_links(self):
         import os, tempfile

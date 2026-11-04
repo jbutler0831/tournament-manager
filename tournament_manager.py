@@ -5,6 +5,7 @@ import pickle
 import random
 import re
 import socket
+import sys
 import threading
 import webbrowser
 from datetime import datetime, timedelta
@@ -245,11 +246,30 @@ class TournamentGenerator:
 
 # --- SAVE / RECOVERY ---
 
-SAVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tournament_save.pkl")
+def documents_dir():
+    """The user's Documents folder. On Windows this follows OneDrive/folder redirection."""
+    if sys.platform == "win32":
+        import ctypes
+        buf = ctypes.create_unicode_buffer(260)
+        if ctypes.windll.shell32.SHGetFolderPathW(None, 5, None, 0, buf) == 0:  # 5 = CSIDL_PERSONAL (Documents)
+            return buf.value
+    return os.path.join(os.path.expanduser("~"), "Documents")
+
+def data_dir():
+    """Where saves and logs live. Run as a script: next to this file (unchanged).
+    Packaged .exe: Documents/TournamentManager, because a one-file .exe runs from a temp folder deleted on exit."""
+    if getattr(sys, "frozen", False):
+        return os.path.join(documents_dir(), "TournamentManager")
+    return os.path.dirname(os.path.abspath(__file__))
+
+DATA_DIR = data_dir()
+SAVE_PATH = os.path.join(DATA_DIR, "tournament_save.pkl")
+LOG_PATH = os.path.join(DATA_DIR, "tournament_manager.log")
 
 def save_tournament(gen, path=None):
     path = path or SAVE_PATH
     # Pickle keeps the shared Team objects linked across matches. Only ever load your own save file.
+    os.makedirs(os.path.dirname(path), exist_ok=True)  # first save in a packaged build creates the folder
     tmp = path + ".tmp"
     with open(tmp, "wb") as f:
         pickle.dump(gen, f)
@@ -1098,6 +1118,11 @@ class TournamentGUI:
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
+    if getattr(sys, "frozen", False):
+        # A packaged .exe has no console window, so errors would vanish. Send them to a log file instead.
+        os.makedirs(DATA_DIR, exist_ok=True)
+        sys.stdout = sys.stderr = open(LOG_PATH, "a", buffering=1, encoding="utf-8")
+        print(f"--- Tournament Manager started {datetime.now():%Y-%m-%d %H:%M:%S}")
     root = tk.Tk()
     app = TournamentGUI(root)
     root.mainloop()

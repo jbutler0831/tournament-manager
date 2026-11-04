@@ -5,7 +5,7 @@
 A desktop app for running in-person, single-elimination tournaments (built with fighting game events in mind).
 The organizer runs everything from one laptop. Players follow their bracket on their phones, and a TV at the venue shows live matches and announces who plays next.
 
-> **Platform status:** **macOS: tested** (Python 3.14). **Windows: coming later.** A Windows `.exe` is planned but has not been built or tested yet.
+> **Platform status:** **macOS: tested** (Python 3.14). **Windows: coming later.** A Windows `.exe` is planned but has not been built or tested yet. Early build instructions: [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Features
 
