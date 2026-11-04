@@ -1,0 +1,62 @@
+name: 💬 General feedback
+description: Tell us how Tournament Manager felt to use, what worked and what didn't.
+title: "[Feedback]: "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying the Tournament Manager beta! 💙 Honest feedback, good or bad, is the most useful thing you can give us.
+
+        **First, type a short title in the Title box above**, for example: `[Feedback]: Ran a 16-player local`.
+
+        Answer as much or as little as you like. Only the first question is required.
+
+  - type: dropdown
+    id: experience
+    attributes:
+      label: Overall, how was your experience?
+      options:
+        - "😀 Great: it worked well"
+        - "🙂 Good: a few small issues"
+        - "😐 Okay: it worked, but it was hard going"
+        - "🙁 Poor: I had a lot of trouble"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: How did you use it? (optional)
+      description: For example, a practice run at home, or a real event and roughly how many players.
+    validations:
+      required: false
+
+  - type: textarea
+    id: liked
+    attributes:
+      label: What did you like?
+    validations:
+      required: false
+
+  - type: textarea
+    id: confusing
+    attributes:
+      label: What was confusing or difficult?
+      description: Any moment you weren't sure what to click or what was happening.
+    validations:
+      required: false
+
+  - type: textarea
+    id: suggestions
+    attributes:
+      label: Suggestions for improvement
+    validations:
+      required: false
+
+  - type: textarea
+    id: comments
+    attributes:
+      label: Anything else?
+    validations:
+      required: false

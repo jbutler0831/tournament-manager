@@ -1,0 +1,90 @@
+name: 🐞 Bug report
+description: Something in Tournament Manager is broken or not working the way it should.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping test Tournament Manager! 🙌 Every report makes the next tournament run smoother.
+
+        **First, type a short title in the Title box above**, for example: `[Bug]: Phone page doesn't update after calling a match`.
+
+        No technical knowledge needed. Just describe what you saw in your own words. If you're not sure about an answer, leave it blank or write "not sure".
+        Setup help is in the [README](https://github.com/jbutler0831/tournament-manager#readme).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem in a sentence or two.
+      placeholder: When I clicked "Call" on Match 2, the TV display didn't show the announcement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to make it happen again
+      description: What did you do right before the problem? List the steps in order.
+      placeholder: |
+        1. Started a tournament with 4 players
+        2. Opened the TV display on a second screen
+        3. Clicked "Call" on Match 2 and typed station 2
+        4. Nothing appeared on the TV
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: The TV should show "PLAY NOW" with both player names.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+      placeholder: The TV stayed on the bracket. No pop-up and no sound.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Which computer were you running Tournament Manager on?
+      description: The laptop or desktop that runs the app, not the phone or TV.
+      options:
+        - macOS
+        - Windows
+        - Linux / other
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How serious is it?
+      options:
+        - "Minor: looks wrong or is a little annoying, but I can keep going"
+        - "Medium: a feature doesn't work, but there's a workaround"
+        - "Serious: I couldn't finish running the tournament"
+        - "Critical: tournament data was lost or results were wrong"
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or error messages (optional)
+      description: Drag and drop screenshots or photos here, or paste any error text you saw.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        🔒 This report is public. Please don't include passwords or private information, and only include players' real names if they're OK with it.

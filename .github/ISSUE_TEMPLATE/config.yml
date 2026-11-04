@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Read the README (setup and known limitations)
+    url: https://github.com/jbutler0831/tournament-manager#readme
+    about: Install steps, how to run a tournament, and known limitations. Your question might already be answered there.
+  - name: ✅ Practice tournament checklist
+    url: https://github.com/jbutler0831/tournament-manager/blob/main/TESTING_CHECKLIST.md
+    about: A 15-minute test run. Tick it off, then tell us how it went with the forms above.

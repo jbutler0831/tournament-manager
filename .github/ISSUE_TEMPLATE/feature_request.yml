@@ -1,0 +1,51 @@
+name: 💡 Feature request
+description: Suggest a new feature or an improvement to an existing one.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea that would make running or playing in a tournament easier? We'd love to hear it! ✨
+
+        **First, type the feature name in the Title box above**, for example: `[Feature]: Double elimination brackets`.
+
+        You don't need to know how it would be built. Just tell us what you'd like and why.
+        To see what Tournament Manager already does, check the [README](https://github.com/jbutler0831/tournament-manager#readme).
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What would the feature do?
+      placeholder: Let players who lose once keep playing in a losers bracket.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it be useful?
+      description: Who would it help, and what problem would it solve?
+      placeholder: Most fighting game events use double elimination, so players get more matches.
+    validations:
+      required: true
+
+  - type: textarea
+    id: how
+    attributes:
+      label: How do you imagine it working?
+      description: Describe what you'd click or see. Sketches and screenshots from other tools are welcome. (Optional)
+      placeholder: A "Double elimination" option before starting the tournament, and a second bracket on the TV display.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - "Low: nice to have"
+        - "Medium: would make things noticeably easier"
+        - "High: I can't use Tournament Manager for my events without it"
+    validations:
+      required: true

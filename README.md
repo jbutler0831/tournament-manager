@@ -80,6 +80,16 @@ python3 -m unittest test_tournament_manager.py
 - **Only open save files created by this app.** Save files use Python's pickle format, which can run code when loaded.
 - The phone page names rounds "Round 1, Round 2…", while the TV uses "Semifinals", "Final", etc.
 
+## Feedback & support
+
+This is a beta, and feedback from testers shapes what gets fixed next. To report a problem or share an idea, [open an issue](https://github.com/jbutler0831/tournament-manager/issues/new/choose) and pick a form:
+
+- **🐞 Bug report:** something is broken
+- **💡 Feature request:** an idea for something new
+- **💬 General feedback:** how it felt to use
+
+You don't need to be technical; each form explains what to write. You need a free GitHub account to submit.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
